@@ -19,7 +19,7 @@ angular.module('starter', ['ionic','ngCordova'])
   $rootScope.myFirebaseRef = new Firebase("https://glaring-inferno-2375.firebaseio.com/mp3");
 })
 
-.controller('FileManager', function($scope, $cordovaMedia, $cordovaFile,$timeout,$cordovaFileTransfer,$rootScope){
+.controller('FileManager', function($window, $scope, $cordovaMedia, $cordovaFile,$timeout,$cordovaFileTransfer,$rootScope){
 
 
 $scope.call = function(){
@@ -32,7 +32,7 @@ $scope.call = function(){
     
 
     function gotFS(fileSystem) {
-        fileSystem.root.getFile("mp3/Passenger - Let Her Go [Official Video]-RBumgq5yVrA.mp3", null, gotFileEntry, fail);
+        fileSystem.root.getFile("mp3/Over_the_horizon.mp3", null, gotFileEntry, fail);
     }
 
     function gotFileEntry(fileEntry) {
@@ -48,6 +48,28 @@ $scope.call = function(){
       console.log(JSON.stringify(error));
     }
 
+    function dataURItoBlob(dataURI) {
+    // convert base64 to raw binary data held in a string
+    // doesn't handle URLEncoded DataURIs - see SO answer #6850276 for code that does this
+    var byteString = atob(dataURI.split(',')[1]);
+
+    // separate out the mime component
+    var mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
+
+    // write the bytes of the string to an ArrayBuffer
+    var ab = new ArrayBuffer(byteString.length);
+    var ia = new Uint8Array(ab);
+    for (var i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
+    }
+
+    // write the ArrayBuffer to a blob, and you're done
+    console.log('Inside data dataURI');
+    //console.log(ia.length );
+    var blob =  new Blob([ia], {type: mimeString});
+    
+    return blob;
+    }
 
     function readDataUrl(file) {
       console.log('reading as url called');
@@ -59,15 +81,7 @@ $scope.call = function(){
             //console.log('mp3 data = ' + mp3.data);
 
             //Here is the code to play mp3
-            var src = mp3;
-            var media = new Media(src,
-                   function(s){console.log('success');
-                    }, function(err){console.log('error = ' + JSON.stringify(err))
-                  },   function() {
-                   console.log('mediacall back called');
-            });
-    // nothing happened. wait let me add success and error cll back functions too
-             media.play();
+           
 
 
      
@@ -89,10 +103,19 @@ $scope.call = function(){
           fileSys.root.getDirectory( myFolderApp,
                     {create:true, exclusive: false},
                     function(directory) {
-                        var fileProp = directory.getFile("new-audop.mp3", {create: true, exclusive: true});
+                        directory.getFile("new-audop.mp3", {create: true}, function(fileEntry) {
 
-                        var fHandle = new FileWriter(fileProp);
-                        fHandle.write(mp3);
+                          fileEntry.createWriter(function(fileWriter) {
+                            fileWriter.seek(fileWriter.length);
+                            var blob = dataURItoBlob(mp3);
+                            fileWriter.write(blob);
+                          });
+
+                         
+                         
+                        });
+
+                        
                     },
                     resOnError);
                     },
